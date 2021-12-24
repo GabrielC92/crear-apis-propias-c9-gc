@@ -18,7 +18,13 @@
         <br>
         <p>FECHA DE CREACIÓN: <%= movie.release_date %> </p>
         <br>
-        <p>GÉNERO: <%= movie.genre_id %></p>
+        <p>GÉNERO: <% if (movie.genre_id) { %>
+         <% allGenres.forEach(genre => { %>
+                <%= movie.genre_id == genre.id ? genre.name : null %>
+         <% }) %>
+         <% } else { %>
+          <%= movie.genre_id %> 
+        <% } %></p>
         <br>
         <section>
             <a class="botonAgregar" href="/movies/add">Agregar</a>

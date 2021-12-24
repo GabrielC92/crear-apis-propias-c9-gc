@@ -25,7 +25,7 @@ const genresController = {
             let response = {
                 meta: {
                     status: 200,
-                    url: '/api/genres/detail' + req.params.id
+                    url: '/api/genres/' + req.params.id
                 },
                 data: genre,
             }

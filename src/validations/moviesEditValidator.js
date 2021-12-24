@@ -27,19 +27,16 @@ module.exports = [
     }),
     
     check('rating').notEmpty().withMessage('Ingresar rating de película').bail()
-    .isNumeric().withMessage('Debe ser un dato numérico entero o decimal').bail()
-    .isLength({min: 0}).withMessage('El valor mínimo es cero'),
+    .isInt({min:0}).withMessage('Debe ser un dato numérico'),
 
     check('awards').notEmpty().withMessage('Ingresar cantidad de premios').bail()
-    .isInt().withMessage('Debe ser un número entero').bail()
-    .isLength({min: 0}).withMessage('El valor mínimo es cero'),
+    .isInt({min:0}).withMessage('Debe ser un número, mayor o igual a cero'),
 
     check('release_date').notEmpty().withMessage('Ingresar fecha de estreno').bail()
     .isDate().withMessage('Debe ingresar día, mes y año'),
 
     check('length').notEmpty().withMessage('Ingresar duración en minutos').bail()
-    .isInt().withMessage('Debe ser un número entero').bail()
-    .isLength({min: 0}).withMessage('El valor mínimo es cero'),
+    .isInt({min:60}).withMessage('Debe ser un número, 60 como mínimo'),
 
     check('genre_id').notEmpty().withMessage('Selecciona un género')
 ]

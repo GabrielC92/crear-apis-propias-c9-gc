@@ -2,34 +2,50 @@ const path = require('path');
 const db = require('../../database/models');
 const sequelize = db.sequelize;
 const { Op } = require("sequelize");
-const moment = require('moment');
-
 
 //Aqui tienen otra forma de llamar a cada uno de los modelos
 const Movies = db.Movie;
 const Genres = db.Genre;
 const Actors = db.Actor;
 
-
 const moviesController = {
-    'list': (req, res) => {
-        db.Movie.findAll({
-            include: ['genre']
-        })
-            .then(movies => {
-                res.render('moviesList.ejs', {movies})
-            })
-    },
-    'detail': (req, res) => {
-        db.Movie.findByPk(req.params.id,
-            {
+    'list': async (req, res) => {
+        try {
+            let movies = await db.Movie.findAll({
                 include : ['genre']
             })
-            .then(movie => {
-                res.render('moviesDetail.ejs', {movie});
-            });
+            let response = {
+                meta: {
+                    status: 200,
+                    total: movies.length,
+                    url: '/api/movies'
+                },
+                data: movies
+            }
+            return res.status(200).json(response);
+        } catch (error) {
+            return res.status(error.status || 500).json(error);
+        }
     },
-    'new': async (req, res) => {
+    'detail': async (req, res) => {
+        try {
+            let movie = await db.Movie.findByPk(req.params.id,
+                {
+                    include : ['genre']
+                })
+            let response = {
+                meta: {
+                    status: 200,
+                    url: '/api/movies/' + req.params.id
+                },
+                data: movie
+            }
+            return res.status(200).json(response);
+        } catch (error) {
+            return res.status(error.status || 500).json(error);
+        }
+    },
+    'newMovies': async (req, res) => {
         try{
             let movie = await db.Movie.findAll({
                 order : [
@@ -49,93 +65,136 @@ const moviesController = {
             return res.status(error.status || 500).json(error)
         }
     },
-    'recommended': (req, res) => {
-        db.Movie.findAll({
-            include: ['genre'],
-            where: {
-                rating: {[Op.gte] : 8}
-            },
-            order: [
-                ['rating', 'DESC']
-            ]
-        })
-            .then(movies => {
-                res.render('recommendedMovies.ejs', {movies});
-            });
+    'recommended': async (req, res) => {
+        try {
+            let movie = await db.Movie.findAll({
+                include: ['genre'],
+                where: {
+                    rating: {[Op.gte] : 8}
+                },
+                order: [
+                    ['rating', 'DESC']
+                ]
+            })
+            let response = {
+                meta: {
+                    status: 200,
+                    total: movie.length,
+                    url: '/api/movies/recommended'
+                },
+                data: movie
+            }
+            return res.status(200).json(response)
+        } catch (error) {
+            return res.status(error.status || 500).json(error)
+        }
+    },
+    search : async (req,res) => {
+        try {
+            let movie = await Movies.findAll({
+                where: {
+                    [Op.or]: [{
+                        title: {
+                            [Op.substring]: req.query.keywords
+                        }
+                    }]
+                }
+            })
+            let response = {
+                meta: {
+                    status: 200,
+                    total: movie.length,
+                    url: '/api/movies/search' + req.query.keywords
+                },
+                data: movie
+            }
+            return res.status(200).json(response)
+        } catch (error) {
+            return res.status(error.status || 500).json(error)
+        }
     },
     //Aqui dispongo las rutas para trabajar con el CRUD
-    add: function (req, res) {
-        let promGenres = Genres.findAll();
-        let promActors = Actors.findAll();
-        
-        Promise
-        .all([promGenres, promActors])
-        .then(([allGenres, allActors]) => {
-            return res.render(path.resolve(__dirname, '..', 'views',  'moviesAdd'), {allGenres,allActors})})
-        .catch(error => res.send(error))
-    },
-    create: function (req,res) {
-        Movies
-        .create(
-            {
-                title: req.body.title,
-                rating: req.body.rating,
-                awards: req.body.awards,
-                release_date: req.body.release_date,
-                length: req.body.length,
-                genre_id: req.body.genre_id
+    create: async function (req,res) {
+        try {
+            let movie = await Movies
+            .create(
+                {
+                    title: req.body.title,
+                    rating: req.body.rating,
+                    awards: req.body.awards,
+                    release_date: req.body.release_date,
+                    length: req.body.length,
+                    genre_id: req.body.genre_id
+                }
+            )
+            let response = {
+                status: 201,
+                meta: {
+                    url: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+                    msg: 'La película se ha guardado con éxito'
+                },
+                data: movie
             }
-        )
-        .then(()=> {
-            return res.redirect('/movies')})            
-        .catch(error => res.send(error))
+            return res.status(201).json(response)
+        } catch (error) {
+            return res.status(error.status || 500).json(error)
+        }
     },
-    edit: function(req,res) {
-        let movieId = req.params.id;
-        let promMovies = Movies.findByPk(movieId,{include: ['genre','actors']});
-        let promGenres = Genres.findAll();
-        let promActors = Actors.findAll();
-        Promise
-        .all([promMovies, promGenres, promActors])
-        .then(([Movie, allGenres, allActors]) => {
-            Movie.release_date = moment(Movie.release_date).format('L');
-            return res.render(path.resolve(__dirname, '..', 'views',  'moviesEdit'), {Movie,allGenres,allActors})})
-        .catch(error => res.send(error))
+    update: async function (req,res) {
+        try {
+            let movieId = req.params.id;
+            let update = await Movies
+            .update(
+                {
+                    title: req.body.title,
+                    rating: req.body.rating,
+                    awards: req.body.awards,
+                    release_date: req.body.release_date,
+                    length: req.body.length,
+                    genre_id: req.body.genre_id
+                },
+                {
+                    where: {id: movieId}
+                })
+            //if (update[0] === 1) {
+                let response = {
+                    status: 200,
+                    meta: {
+                        url: '/api/movies/update/' + movieId,
+                        msg: 'Película actualizada'
+                    },
+                    data: update
+                }
+                return res.status(200).json(response)
+            /* }else{
+                throw new Error
+            } */
+        } catch (error) {
+            return res.status(error.status || 500).json(error)
+        }
     },
-    update: function (req,res) {
-        let movieId = req.params.id;
-        Movies
-        .update(
-            {
-                title: req.body.title,
-                rating: req.body.rating,
-                awards: req.body.awards,
-                release_date: req.body.release_date,
-                length: req.body.length,
-                genre_id: req.body.genre_id
-            },
-            {
-                where: {id: movieId}
-            })
-        .then(()=> {
-            return res.redirect('/movies')})            
-        .catch(error => res.send(error))
-    },
-    delete: function (req,res) {
-        let movieId = req.params.id;
-        Movies
-        .findByPk(movieId)
-        .then(Movie => {
-            return res.render(path.resolve(__dirname, '..', 'views',  'moviesDelete'), {Movie})})
-        .catch(error => res.send(error))
-    },
-    destroy: function (req,res) {
-        let movieId = req.params.id;
-        Movies
-        .destroy({where: {id: movieId}, force: true}) // force: true es para asegurar que se ejecute la acción
-        .then(()=>{
-            return res.redirect('/movies')})
-        .catch(error => res.send(error)) 
+    destroy: async function (req,res) {
+        try {
+            let movieId = req.params.id;
+            let remove = await Movies
+            .destroy({where: {id: movieId}})
+            //res.json(remove)
+            //if (remove[0] === 1) {
+                let response = {
+                    status: 200,
+                    meta: {
+                        url: '/api/movies/destroy/' + movieId,
+                        msg: 'Película borrada!'
+                    },
+                    data: remove
+                }
+                return res.status(200).json(response)
+            /* } else {
+                throw new Error
+            } */
+        } catch (error) {
+            return res.status(error.status || 500).json(error)
+        }
     }
 }
 

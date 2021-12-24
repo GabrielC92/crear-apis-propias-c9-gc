@@ -31,7 +31,7 @@
                 <p>
                     <select name="genre_id" id="">
                         <% allGenres.forEach(genre => { %>
-                        <option value="<%= genre.id %>" <% if (Movie.genre.id == genre.id) { %><%= 'selected' %><% }; %>><%= genre.name %></option>
+                        <option value="<%= genre.id %>" <% if (Movie.genre_id == genre.id) { %><%= 'selected' %><% }; %>><%= genre.name %></option>
                         <% }); %>
                     </select>
                     <p><span class="warning"><%= locals.errors && errors.genre_id ? errors.genre_id.msg : null %></span></p>
