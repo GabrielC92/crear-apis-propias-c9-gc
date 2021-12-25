@@ -30,7 +30,8 @@ const moviesController = {
         let promActors = db.Actor.findAll()
         Promise.all([promMovies, promGenres, promActors])
             .then(([movie, allGenres, allActors]) => {
-                res.render('moviesDetail.ejs', {
+                //movie.release_date = moment(movie.release_date).format('L');
+                return res.render('moviesDetail.ejs', {
                     movie,
                     allGenres,
                     allActors
