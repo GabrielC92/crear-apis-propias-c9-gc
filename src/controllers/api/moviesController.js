@@ -47,7 +47,8 @@ const moviesController = {
     },
     'newMovies': async (req, res) => {
         try{
-            let movie = await db.Movie.findAll({
+            let movies = await db.Movie.findAll({
+                include : ['genre'],
                 order : [
                     ['release_date', 'DESC']
                 ],
@@ -56,9 +57,10 @@ const moviesController = {
             let response = {
                 meta: {
                     status: 200,
+                    total: movies.length,
                     url: '/api/movies/news'
                 },
-                data: movie,
+                data: movies,
             }
             return res.status(200).json(response)
         } catch(error){
@@ -67,10 +69,10 @@ const moviesController = {
     },
     'recommended': async (req, res) => {
         try {
-            let movie = await db.Movie.findAll({
+            let movies = await db.Movie.findAll({
                 include: ['genre'],
                 where: {
-                    rating: {[Op.gte] : 8}
+                    rating: {[Op.gte] : req.params.rating}
                 },
                 order: [
                     ['rating', 'DESC']
@@ -79,10 +81,10 @@ const moviesController = {
             let response = {
                 meta: {
                     status: 200,
-                    total: movie.length,
-                    url: '/api/movies/recommended'
+                    total: movies.length,
+                    url: '/api/movies/recommended/' + req.params.rating
                 },
-                data: movie
+                data: movies
             }
             return res.status(200).json(response)
         } catch (error) {
@@ -92,10 +94,11 @@ const moviesController = {
     search : async (req,res) => {
         try {
             let movie = await Movies.findAll({
+                include: ['genre'],
                 where: {
                     [Op.or]: [{
                         title: {
-                            [Op.substring]: req.query.keywords
+                            [Op.substring]: req.params.title
                         }
                     }]
                 }
@@ -104,7 +107,7 @@ const moviesController = {
                 meta: {
                     status: 200,
                     total: movie.length,
-                    url: '/api/movies/search' + req.query.keywords
+                    url: '/api/movies/search/' + req.params.title
                 },
                 data: movie
             }
@@ -114,86 +117,113 @@ const moviesController = {
         }
     },
     //Aqui dispongo las rutas para trabajar con el CRUD
-    create: async function (req,res) {
+    create: async (req, res) => {
         try {
-            let movie = await Movies
-            .create(
-                {
-                    title: req.body.title,
-                    rating: req.body.rating,
-                    awards: req.body.awards,
-                    release_date: req.body.release_date,
-                    length: req.body.length,
-                    genre_id: req.body.genre_id
-                }
-            )
-            let response = {
-                status: 201,
-                meta: {
-                    url: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
-                    msg: 'La película se ha guardado con éxito'
-                },
-                data: movie
+            let movieCreate = await Movies
+                .create(
+                    {
+                        title: req.body.title,
+                        rating: req.body.rating,
+                        awards: req.body.awards,
+                        release_date: req.body.release_date,
+                        length: req.body.length,
+                        genre_id: req.body.genre_id
+                    }
+                );
+            let response;
+            if (movieCreate) {
+                response = {
+                    meta: {
+                        status: 201,
+                        url: '/api/movies/create',
+                        msg: 'La película se ha guardado con éxito!'
+                    },
+                    data: movieCreate
+                };
+            } else {
+                response = {
+                    meta: {
+                        status: 204,
+                        url: '/api/movies/create',
+                        msg: 'Nada se ha guardado!'
+                    },
+                    data: movieCreate
+                };
             }
-            return res.status(201).json(response)
+            return res.status(201).json(response);
         } catch (error) {
-            return res.status(error.status || 500).json(error)
+            return res.status(error.status || 500).json(error);
         }
     },
-    update: async function (req,res) {
+    update: async (req, res) => {
         try {
             let movieId = req.params.id;
             let update = await Movies
-            .update(
-                {
-                    title: req.body.title,
-                    rating: req.body.rating,
-                    awards: req.body.awards,
-                    release_date: req.body.release_date,
-                    length: req.body.length,
-                    genre_id: req.body.genre_id
-                },
-                {
-                    where: {id: movieId}
-                })
-            //if (update[0] === 1) {
-                let response = {
-                    status: 200,
+                .update(
+                    {
+                        title: req.body.title,
+                        rating: req.body.rating,
+                        awards: req.body.awards,
+                        release_date: req.body.release_date,
+                        length: req.body.length,
+                        genre_id: req.body.genre_id
+                    },
+                    {
+                        where: { id: movieId }
+                    });
+            let response;
+            if (update) {
+                response = {
                     meta: {
+                        status: 202,
                         url: '/api/movies/update/' + movieId,
                         msg: 'Película actualizada'
                     },
-                    data: update
-                }
-                return res.status(200).json(response)
-            /* }else{
-                throw new Error
-            } */
+                    data: req.body
+                };
+            } else {
+                response = {
+                    meta: {
+                        status: 204,
+                        url: '/api/movies/update/' + movieId,
+                        msg: 'Error: no se ha actualizado nada!'
+                    },
+                    data: req.body
+                };
+            }
+            return res.status(202).json(response);
         } catch (error) {
-            return res.status(error.status || 500).json(error)
+            return res.status(error.status || 500).json(error);
         }
     },
-    destroy: async function (req,res) {
+    destroy: async (req, res) => {
         try {
             let movieId = req.params.id;
             let remove = await Movies
-            .destroy({where: {id: movieId}})
-            //res.json(remove)
-            //if (remove[0] === 1) {
-                let response = {
-                    status: 200,
+                .destroy({ where: { id: movieId }, force: true });
+            let response;
+            if (remove) {
+                response = {
                     meta: {
+                        status: 202,
                         url: '/api/movies/destroy/' + movieId,
                         msg: 'Película borrada!'
                     },
                     data: remove
-                }
-                return res.status(200).json(response)
-            /* } else {
-                throw new Error
-            } */
+                };
+            } else {
+                response = {
+                    meta: {
+                        status: 204,
+                        url: '/api/movies/destroy/' + movieId,
+                        msg: 'No borraste nada!'
+                    },
+                    data: remove
+                };
+            }
+            return res.status(202).json(response);
         } catch (error) {
-            return res.status(error.status || 500).json(error)
+            return res.status(error.status || 500).json(error);
         }
     }
 }
