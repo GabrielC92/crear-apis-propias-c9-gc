@@ -45,28 +45,6 @@ const moviesController = {
             return res.status(error.status || 500).json(error);
         }
     },
-    'newMovies': async (req, res) => {
-        try{
-            let movies = await db.Movie.findAll({
-                include : ['genre'],
-                order : [
-                    ['release_date', 'DESC']
-                ],
-                limit: 5
-            })
-            let response = {
-                meta: {
-                    status: 200,
-                    total: movies.length,
-                    url: '/api/movies/news'
-                },
-                data: movies,
-            }
-            return res.status(200).json(response)
-        } catch(error){
-            return res.status(error.status || 500).json(error)
-        }
-    },
     'recommended': async (req, res) => {
         try {
             let movies = await db.Movie.findAll({
@@ -171,6 +149,9 @@ const moviesController = {
                     {
                         where: { id: movieId }
                     });
+            let movieUpdate = await Movies.findByPk(movieId,{
+                include : ['genre']
+            })
             let response;
             if (update) {
                 response = {
@@ -179,7 +160,7 @@ const moviesController = {
                         url: '/api/movies/update/' + movieId,
                         msg: 'Película actualizada'
                     },
-                    data: req.body
+                    data: movieUpdate
                 };
             } else {
                 response = {
@@ -188,7 +169,7 @@ const moviesController = {
                         url: '/api/movies/update/' + movieId,
                         msg: 'Error: no se ha actualizado nada!'
                     },
-                    data: req.body
+                    data: movieUpdate
                 };
             }
             return res.status(202).json(response);
@@ -199,6 +180,9 @@ const moviesController = {
     destroy: async (req, res) => {
         try {
             let movieId = req.params.id;
+            let movieDelete = await Movies.findByPk(movieId,{
+                include : ['genre']
+            })
             let remove = await Movies
                 .destroy({ where: { id: movieId }, force: true });
             let response;
@@ -209,7 +193,7 @@ const moviesController = {
                         url: '/api/movies/destroy/' + movieId,
                         msg: 'Película borrada!'
                     },
-                    data: remove
+                    data: movieDelete
                 };
             } else {
                 response = {
@@ -218,7 +202,7 @@ const moviesController = {
                         url: '/api/movies/destroy/' + movieId,
                         msg: 'No borraste nada!'
                     },
-                    data: remove
+                    data: movieDelete
                 };
             }
             return res.status(202).json(response);

@@ -3,7 +3,9 @@ const db = require('../../database/models');
 const actorsController = {
     'list': async (req, res) => {
         try{
-            let actors = await db.Actor.findAll()
+            let actors = await db.Actor.findAll({
+                include : ['movie']
+            })
             let response = {
                 meta: {
                     status: 200,
@@ -19,7 +21,9 @@ const actorsController = {
     },
     'detail': async (req, res) => {
         try{
-            let actor = await db.Actor.findByPk(req.params.id)
+            let actor = await db.Actor.findByPk(req.params.id,{
+                include : ['movie']
+            })
             let response = {
                 meta: {
                     status: 200,
